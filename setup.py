@@ -17,13 +17,14 @@ def get_version(filename):
 
 
 setup(
-    name='patrons_datasrc_cardoffice',
+    name='patrons_datasrc',
     version='0.0.1',
+    py_modules=['patronsdatasrc'],
     packages=find_packages('src'),
     package_dir={'': 'src'},
     author='Hal Blackburn',
     author_email='hwtb2@cam.ac.uk',
-    install_requires=[],
+    install_requires=['django'],
     entry_points={
         'console_scripts': []
     },
