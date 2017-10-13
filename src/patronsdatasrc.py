@@ -1,3 +1,5 @@
+import abc
+import collections
 from enum import Enum
 import logging
 from functools import wraps
@@ -16,6 +18,7 @@ ImportType = Enum('ImportType', 'FULL_SYNC PARTIAL_UPDATE')
 class ImportOperationError(RuntimeError):
     pass
 
+
 def _notify_handler_robust(operation, method):
     errors = []
     for h in operation.handlers:
@@ -28,6 +31,7 @@ def _notify_handler_robust(operation, method):
                              '{}() method. handler: {}'
                              .format(method, handler))
     return errors
+
 
 def _notify_import_failed(operation):
     return _notify_handler_robust(operation, 'on_import_failed')
@@ -50,6 +54,9 @@ def _first_error(responses):
 #   be exposed.
 
 def perform_import(record_type, import_type, records):
+    if not isinstance(import_type, ImportType):
+        raise ValueError(
+            'import_type was not an ImportType: {}'.format(import_type))
 
     operation = ImportOperation(record_type, import_type)
 
@@ -70,8 +77,9 @@ def perform_import(record_type, import_type, records):
     while True:
         try:
             record = next(records_iter)
-            if record is None:
-                raise ValueError('records produced None-valued record')
+            if not isinstance(record, ImportRecord):
+                raise ValueError('record is not an ImportRecord instance: {}'
+                                 .format(record), record)
         except StopIteration:
             break
         except Exception as err:
@@ -90,6 +98,8 @@ def perform_import(record_type, import_type, records):
     errors = _notify_handler_robust(operation, 'on_import_finished')
     if(errors):
         raise ImportOperationError('handler raised from on_import_finished()')
+
+    return operation
 
 
 class ImportOperation(object):
@@ -113,7 +123,7 @@ class ImportOperation(object):
 
     @property
     def handlers(self):
-        return this._handlers
+        return self._handlers
 
     def attach_handler(self, handler):
         _validate_import_handler(handler)
@@ -131,23 +141,34 @@ class ImportOperation(object):
             self.record_type, self.import_type)
 
 
-class ImportRecord(object):
-    def __init__(self, ids, data):
-        self._ids = dict(ids)
-        self._data = data
+class ID(collections.namedtuple('ID', 'type value'.split()),
+         metaclass=abc.ABCMeta):
+    __slots__ = ()
 
-    def get_ids(self):
-        return self._ids
 
+class ImportRecord(collections.namedtuple('ImportRecord', ['ids', 'data']),
+                   metaclass=abc.ABCMeta):
+    __slots__ = ()
+
+    def __new__(cls, ids, data):
+        ids = frozenset(ids)
+        if not all(isinstance(i, ID) for i in ids):
+            raise ValueError('not all ids were ID instances: {}'.format(ids))
+
+        return super(cls, ImportRecord).__new__(cls, ids, data)
+
+    @property
+    @abc.abstractmethod
+    def idmap(self):
+        return dict((id.type, id) for id in ids)
+
+    @abc.abstractmethod
     def is_deleted(self):
         return self._data is None
 
-    def get_data(self):
-        return self._data
-
     def __repr__(self):
         return 'ImportRecord({!r}, {!r})'.format(
-            self.get_ids(), self.get_data())
+            self.ids, self.data)
 
 
 def hasmethod(obj, name):
@@ -155,24 +176,29 @@ def hasmethod(obj, name):
 
 
 def _validate_import_handler(handler):
-    if not (hasmethod(handler, 'on_record_available') and
-            hasmethod(handler, 'on_import_finished') and
-            hasmethod(handler, 'on_import_failed')):
-        raise ValueError('handler doesn\'t have all ImportOperationHandler '
-                         'methods: {}'.format(handler))
+    if not isinstance(handler, ImportOperationHandler):
+        raise ValueError(
+            'handler isn\'t a ImportOperationHandler. Use '
+            'ImportOperationHandler.register(cls) if not subclassing. '
+            'handler: {}'.format(handler))
 
 
-class ImportOperationHandler(object):
+class ImportOperationHandler(abc.ABC):
     '''
     An event handler for events triggered during a user data import operation.
+
+    This is an Abstract Base Class and need not (but can) be subclassed.
     '''
 
+    @abc.abstractmethod
     def on_record_available(self, operation, record):
         pass
 
+    @abc.abstractmethod
     def on_import_failed(self, operation):
         pass
 
+    @abc.abstractmethod
     def on_import_finished(self, operation):
         pass
 
@@ -306,7 +332,7 @@ def import_operation_handler(f):
     '''
     @wraps(f)
     def wrapper(operation):
-
+        pass # FIXME
     return wrapper
 
 
@@ -327,5 +353,5 @@ def import_operation_handler2(f):
         # clean up
         tx.commit()
     '''
-    @wraps(f)
-    def import_op_handler
+    # @wraps(f)
+    # def import_op_handler
