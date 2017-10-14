@@ -22,7 +22,7 @@ class ImportOperationError(RuntimeError):
 def _notify_handler_robust(operation, method):
     errors = []
     for h in operation.handlers:
-        assert hasmethod(h, method)
+        assert _hasmethod(h, method)
         try:
             getattr(h, method)(operation)
         except Exception as err:
@@ -171,7 +171,7 @@ class ImportRecord(collections.namedtuple('ImportRecord', ['ids', 'data']),
             self.ids, self.data)
 
 
-def hasmethod(obj, name):
+def _hasmethod(obj, name):
     return callable(getattr(obj, name, None))
 
 
