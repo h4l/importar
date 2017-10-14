@@ -19,7 +19,6 @@ def get_version(filename):
 setup(
     name='patrons_datasrc',
     version='0.0.1',
-    py_modules=['patronsdatasrc'],
     packages=find_packages('src'),
     package_dir={'': 'src'},
     author='Hal Blackburn',
