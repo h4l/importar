@@ -37,6 +37,13 @@ def test_duplicate_ids_are_ignored(data_obj):
     assert ir.ids == {ID(1, 2), ID(1, 3), ID(2, 3)}
 
 
+def test_ids_must_be_id_instances():
+    with pytest.raises(ValueError) as excinfo:
+        ImportRecord(['abc'], None)
+
+    assert 'not all ids were ID instances' in str(excinfo.value)
+
+
 def test_has_data(ir, data_obj):
     assert ir.data is data_obj
 

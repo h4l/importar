@@ -17,45 +17,6 @@ def import_started_receiver(receiver):
     import_started.disconnect(receiver)
 
 
-def test_import_started_event_is_fired():
-    with import_started_receiver(MagicMock()) as mock_handler:
-        perform_import('foo', ImportType.FULL_SYNC, [])
-
-        assert mock_handler.called_once()
-
-
-def test_import_started_receiver_receives_importop_as_sender():
-    with import_started_receiver(MagicMock()) as mock_handler:
-        perform_import('foo', ImportType.FULL_SYNC, [])
-
-        _, kwargs = mock_handler.call_args
-        assert isinstance(kwargs['sender'], ImportOperation)
-
-
-@pytest.mark.parametrize('record_type, import_type', [
-    ('abc', ImportType.FULL_SYNC),
-    ('abc', ImportType.PARTIAL_UPDATE),
-    (object(), ImportType.FULL_SYNC),
-    (object(), ImportType.PARTIAL_UPDATE),
-])
-def test_importop_has_record_and_import_types(record_type, import_type):
-    with import_started_receiver(MagicMock()) as mock_handler:
-        perform_import(record_type, import_type, [])
-
-        _, kwargs = mock_handler.call_args
-        iop = kwargs['sender']
-
-        assert iop.record_type is record_type
-        assert iop.import_type is import_type
-
-
-def test_records_must_be_importrecord_instances():
-    with pytest.raises(ImportOperationError) as exc_info:
-        perform_import('foo', ImportType.FULL_SYNC, [object()])
-
-    assert isinstance(exc_info.value.__cause__, ValueError)
-
-
 @contextmanager
 def handlers_attached(*handlers):
     iop = None
@@ -82,6 +43,55 @@ def mock_iop_handler():
 
     with handlers_attached(handler):
         yield handler
+
+
+def test_import_started_event_is_fired():
+    with import_started_receiver(MagicMock()) as mock_handler:
+        perform_import('foo', ImportType.FULL_SYNC, [])
+
+        assert mock_handler.called_once()
+
+
+def test_import_started_receiver_receives_importop_as_sender():
+    with import_started_receiver(MagicMock()) as mock_handler:
+        iop = perform_import('foo', ImportType.FULL_SYNC, [])
+
+        _, kwargs = mock_handler.call_args
+        assert kwargs['sender'] is iop
+
+
+@pytest.mark.parametrize('record_type, import_type', [
+    ('abc', ImportType.FULL_SYNC),
+    ('abc', ImportType.PARTIAL_UPDATE),
+    (object(), ImportType.FULL_SYNC),
+    (object(), ImportType.PARTIAL_UPDATE),
+])
+def test_importop_has_record_and_import_types(record_type, import_type):
+    with import_started_receiver(MagicMock()) as mock_handler:
+        perform_import(record_type, import_type, [])
+
+        _, kwargs = mock_handler.call_args
+        iop = kwargs['sender']
+
+        assert iop.record_type is record_type
+        assert iop.import_type is import_type
+
+
+@pytest.mark.parametrize('import_type', [
+    'abc', object(), ImportType, None
+])
+def test_import_type_must_be_importtype_instances(import_type):
+    with pytest.raises(ValueError) as excinfo:
+        perform_import('foo', import_type, [])
+
+    assert 'import_type was not an ImportType' in str(excinfo.value)
+
+
+def test_records_must_be_importrecord_instances():
+    with pytest.raises(ImportOperationError) as exc_info:
+        perform_import('foo', ImportType.FULL_SYNC, [object()])
+
+    assert isinstance(exc_info.value.__cause__, ValueError)
 
 
 @pytest.mark.parametrize('records', [
