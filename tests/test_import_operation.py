@@ -71,3 +71,10 @@ def test_attached_handlers_must_be_iophandler_instances(iop):
 
 def test_handlers_to_be_detached_neednt_be_iophandler_instances(iop):
     iop.detach_handler(object())
+
+
+def test_repr():
+    r = repr(ImportOperation('abcd', ImportType.FULL_SYNC))
+    assert 'ImportOperation' in r
+    assert 'abcd' in r
+    assert 'ImportType.FULL_SYNC' in r

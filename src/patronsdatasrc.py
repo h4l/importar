@@ -158,18 +158,9 @@ class ImportRecord(collections.namedtuple('ImportRecord', ['ids', 'data']),
 
         return super(cls, ImportRecord).__new__(cls, ids, data)
 
-    @property
-    @abc.abstractmethod
-    def idmap(self):
-        return dict((id.type, id) for id in ids)
-
     @abc.abstractmethod
     def is_deleted(self):
         return self.data is None
-
-    def __repr__(self):
-        return 'ImportRecord({!r}, {!r})'.format(
-            self.ids, self.data)
 
 
 def _hasmethod(obj, name):
