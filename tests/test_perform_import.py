@@ -56,19 +56,32 @@ def test_records_must_be_importrecord_instances():
     assert isinstance(exc_info.value.__cause__, ValueError)
 
 
+@contextmanager
+def handlers_attached(*handlers):
+    iop = None
+    def receiver(*args, sender=None, **kwargs):
+        nonlocal iop
+        assert iop is None
+        iop = sender
+
+        for handler in handlers:
+            iop.attach_handler(handler)
+
+    with import_started_receiver(receiver):
+        yield handlers
+
+        assert iop is not None, 'import_started signal not received'
+
+        for handler in handlers:
+            iop.detach_handler(handlers)
+
+
 @pytest.fixture(scope='function')
 def mock_iop_handler():
     handler = MagicMock(spec=ImportOperationHandler)
 
-    iop = None
-    def receiver(*args, sender=None, **kwargs):
-        nonlocal iop
-        iop = sender
-        iop.attach_handler(handler)
-
-    with import_started_receiver(receiver):
+    with handlers_attached(handler):
         yield handler
-        iop.detach_handler(handler)
 
 
 @pytest.mark.parametrize('records', [
@@ -139,8 +152,91 @@ def test_import_failed_called_when_handler_raises(mock_iop_handler):
     mock_iop_handler.on_record_available.side_effect = ValueError('boom')
 
     with pytest.raises(ImportOperationError):
-        perform_import('foo', ImportType.FULL_SYNC, [ImportRecord([ID(1, 1)], 1)])
+        perform_import('foo', ImportType.FULL_SYNC, [
+            ImportRecord([ID(1, 1)], 1)
+        ])
 
     assert mock_iop_handler.on_record_available.call_count == 1
     assert mock_iop_handler.on_import_finished.call_count == 0
     assert mock_iop_handler.on_import_failed.call_count == 1
+
+
+def test_import_failed_called_when_import_started_receiver_raises(
+    mock_iop_handler):
+    '''
+    Registered handlers get an import failed event when an import_started
+    receiver fails.
+    '''
+
+    # Register another import_started receiver which will fail
+    def failing_receiver(*args, **kwargs):
+        raise ValueError('boom')
+
+    with import_started_receiver(failing_receiver):
+        with pytest.raises(ImportOperationError) as excinfo:
+            perform_import('foo', ImportType.FULL_SYNC, [])
+
+        assert ('import_started signal receiver raised exception' in str(excinfo.value))
+
+    assert mock_iop_handler.on_import_failed.call_count == 1
+
+
+def test_all_failed_handlers_called_despite_one_failing():
+    '''
+    When invoking failed handlers, all get invoked, even if a preceding
+    failed handler itself raises an error.
+    '''
+
+    handler_a = MagicMock(spec=ImportOperationHandler)
+    handler_b = MagicMock(spec=ImportOperationHandler)
+
+    def handle_failed_a(operation):
+        # b is called after we are
+        handler_b.on_import_failed.assert_not_called()
+        # Our handler fails for some reason...
+        raise ValueError('boom')
+
+    def handle_failed_b(operation):
+        # a has been called before us (and failed)
+        assert handler_a.on_import_failed.call_count == 1
+
+    handler_a.on_import_failed.side_effect = handle_failed_a
+    handler_b.on_import_failed.side_effect = handle_failed_b
+
+    with handlers_attached(handler_a, handler_b):
+        with pytest.raises(ImportOperationError) as excinfo:
+            perform_import('foo', ImportType.FULL_SYNC,
+                # Fails due to division by zero
+                (1/0 for _ in [1]))
+
+        assert str(excinfo.value) == 'record generator raised exception'
+
+    assert handler_a.on_import_failed.call_count == 1
+    assert handler_b.on_import_failed.call_count == 1
+
+
+def test_all_finished_handlers_called_despite_one_failing():
+    handler_a = MagicMock(spec=ImportOperationHandler)
+    handler_b = MagicMock(spec=ImportOperationHandler)
+
+    def handle_finished_a(operation):
+        # b is called after we are
+        handler_b.on_import_finished.assert_not_called()
+        # Our handler fails for some reason...
+        raise ValueError('boom')
+
+    def handle_finished_b(operation):
+        # a has been called before us (and failed)
+        assert handler_a.on_import_finished.call_count == 1
+
+    handler_a.on_import_finished.side_effect = handle_finished_a
+    handler_b.on_import_finished.side_effect = handle_finished_b
+
+    with handlers_attached(handler_a, handler_b):
+        with pytest.raises(ImportOperationError) as excinfo:
+            perform_import('foo', ImportType.FULL_SYNC, [])
+
+        assert str(excinfo.value) == 'handler raised from on_import_finished()'
+
+    assert handler_a.on_import_finished.call_count == 1
+    assert handler_b.on_import_finished.call_count == 1
