@@ -29,7 +29,7 @@ def _notify_handler_robust(operation, method):
             errors.append((h, err))
             logger.exception('Exception raised from handler\'s '
                              '{}() method. handler: {}'
-                             .format(method, handler))
+                             .format(method, h))
     return errors
 
 
@@ -43,7 +43,7 @@ def _first_error(responses):
 
     Returns: The first response value which is an Exception instance or None
     '''
-    return next((resp for (_, resp) in responses
+    return next(((receiver, resp) for (receiver, resp) in responses
                  if isinstance(resp, Exception)), None)
 
 
@@ -66,9 +66,10 @@ def perform_import(record_type, import_type, records):
     err = _first_error(import_started.send_robust(operation))
     if err is not None:
         _notify_import_failed(operation)
+        receiver, exc = err
         raise ImportOperationError(
             'import_started signal receiver raised exception. receiver: {}'
-            .format()) from err
+            .format(receiver)) from exc
 
     # Iterate manually to more easily determine if an error was from a receiver
     # or the record generator
@@ -85,7 +86,7 @@ def perform_import(record_type, import_type, records):
         except Exception as err:
             _notify_import_failed(operation)
             raise ImportOperationError(
-                'Record generator raised exception') from err
+                'record generator raised exception') from err
 
         try:
             for h in operation.handlers:

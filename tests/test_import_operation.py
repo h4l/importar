@@ -22,6 +22,7 @@ def test_import_operation_has_record_and_import_types(
     assert iop.record_type is record_type
     assert iop.import_type is import_type
 
+
 @pytest.fixture(scope='function')
 def iop():
     return ImportOperation(object(), ImportType.FULL_SYNC)
