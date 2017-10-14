@@ -9,7 +9,7 @@ This is best explained by an example:
     ...         print('got a thing:', repr(t))
     ...         yield
     ...     print('consumed all the things!')
-    >>> controller = InvertedIteartionController(consumer)
+    >>> controller = InvertedIterationController(consumer)
     >>> controller.transmit_value('abc')
     got a thing: 'abc'
     >>> controller.transmit_value('def')
@@ -20,7 +20,7 @@ This is best explained by an example:
 
 import enum
 
-__all__ = ['InversionIterator']
+__all__ = ['InvertedIterationController']
 
 State = enum.Enum('State', 'AWAITING_VAL HAS_VAL AT_ERR AT_END')
 
@@ -35,9 +35,6 @@ class IterationState:
         self.state = State.AWAITING_VAL
         self.val = None
 
-    def __iter__(self):
-        return self
-
     def __next__(self):
         if self.state == State.AWAITING_VAL:
             raise RuntimeError('__next__ called before next val was provided')
@@ -51,9 +48,9 @@ class IterationState:
             self.val = None
             self.state = State.AT_END
             raise err
-        elif self.state == State.AT_END:
-            raise StopIteration()
-        raise AssertionError('Unknown state', self.state)
+
+        assert self.state == State.AT_END
+        raise StopIteration()
 
     def register_next_val(self, val):
         if self.state != State.AWAITING_VAL:
@@ -86,7 +83,7 @@ class InvertedIterationError(Exception):
     pass
 
 
-class InvertedIteartionController:
+class InvertedIterationController:
     '''
     Allows for a for loop to consume an asynchronously produced series of
     values, as if the for loop was in control of, and blocking while each value
@@ -111,48 +108,66 @@ class InvertedIteartionController:
         Args:
             bind_consumer: The function
         '''
-        self.inversion_state = InversionState()
+        self.iteration_state = IterationState()
         self.consumer = bind_consumer(self._feeder())
         self.step_count = 0
         self.yield_count = 0
 
     def _feeder(self):
         while True:
-            if self.yield_count > self.step_count:
+            self.yield_count += 1
+            self._validate_in_sync()
+
+            yield next(self.iteration_state)
+
+    def _validate_in_sync(self):
+        if self.yield_count > self.step_count:
                 raise InvertedIterationError(
                     'Consumer attempted to access a second value without '
                     'yielding. (Did you forget a yield statement in your for '
                     'loop?)')
-            assert self.yield_count == self.step_count
 
-            self.yield_count += 1
-            yield next(self.inversion_state)
+        elif self.yield_count < self.step_count:
+            raise InvertedIterationError(
+                'Consumer didn\'t advance its iterator. (Are you forget '
+                'to run a for loop over the iterator?)')
 
     def _step(self):
+        assert self.yield_count == self.step_count
         try:
-            assert self.yield_count == self.step_count
-            # Have the consumer pull the next value from our _feeder() generator
-            next(consumer)
             self.step_count += 1
 
-            if self.yield_count < self.step_count:
-                raise InvertedIterationError(
-                    'Consumer didn\'t advance its iterator. (Are you forget '
-                    'to run a for loop over the iterator?)')
-            assert self.yield_count == self.step_count
+            # Have the consumer pull the next value from our _feeder() generator
+            next(self.consumer)
+
+            # The consumer must advance our _feeder() when we advance it. If
+            # it doesn't the counts will be out of sync.
+            self._validate_in_sync()
+        except InvertedIterationError:
+            raise
         except StopIteration:
-            if not self.inversion_state.is_at_end:
-                raise RuntimeError(
-                    'consumer unexpectedly raised StopIteration', consumer)
+            if not self.iteration_state.is_at_end:
+                raise InvertedIterationError(
+                    'Consumer unexpectedly raised StopIteration. (Perhaps '
+                    'you\'re breaking before consuming the whole iterator.)')
+            self._validate_in_sync()
+        except Exception:
+            self._validate_in_sync()
+            raise
+
 
     def transmit_value(self, value):
-        self.inversion_state.register_next_val(value)
+        self.iteration_state.register_next_val(value)
         self._step()
 
     def fail(self, err):
-        self.inversion_state.register_error(err)
+        self.iteration_state.register_error(err)
         self._step()
 
     def end(self):
-        self.inversion_state.register_end()
+        self.iteration_state.register_end()
         self._step()
+
+    @property
+    def is_active(self):
+        return not self.iteration_state.is_at_end
