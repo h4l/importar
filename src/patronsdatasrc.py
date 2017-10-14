@@ -209,7 +209,7 @@ class OneOffImportOperationHandler(ImportOperationHandler):
     operation. Event handler methods throw ValueError if called with an
     operation other than that provided to the constructor.
     '''
-    def __init__(self, operation, generator):
+    def __init__(self, operation):
         self._operation = operation
 
     def _validate_operation_is_ours(self, operation):
