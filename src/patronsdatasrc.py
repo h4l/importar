@@ -164,7 +164,7 @@ class ImportRecord(collections.namedtuple('ImportRecord', ['ids', 'data']),
 
     @abc.abstractmethod
     def is_deleted(self):
-        return self._data is None
+        return self.data is None
 
     def __repr__(self):
         return 'ImportRecord({!r}, {!r})'.format(
