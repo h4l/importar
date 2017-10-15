@@ -1,6 +1,6 @@
 import pytest
 
-from patronsdatasrc import (
+from importar import (
     OneOffImportOperationHandler, ImportOperationHandler, ImportType,
     ImportRecord, ID, ImportOperation
 )

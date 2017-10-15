@@ -9,7 +9,7 @@ is used to do this, but a normal app can just connect to the signal once.
 '''
 import pytest
 
-from patronsdatasrc import (
+from importar import (
     GeneratorImportOperationHandler, ImportOperation, ImportType,
     ImportOperationError, perform_import, ImportRecord, ID
 )

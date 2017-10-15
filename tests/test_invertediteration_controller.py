@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 import pytest
 
-from patronsdatasrc.invertediteration import (
+from importar.invertediteration import (
     InvertedIterationController, InvertedIterationError
 )
 

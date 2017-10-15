@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 import pytest
 
-from patronsdatasrc import (
+from importar import (
     GeneratorImportOperationHandler, ImportOperation, ImportType,
     ImportOperationError
 )

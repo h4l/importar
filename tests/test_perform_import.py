@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import pytest
 from django.dispatch import Signal
 
-from patronsdatasrc import (
+from importar import (
     import_started, perform_import, ImportType, ImportOperation,
     ImportOperationHandler, ImportRecord, ID, ImportOperationError)
 
