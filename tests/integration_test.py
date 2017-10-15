@@ -1,3 +1,12 @@
+'''
+The test following demonstrates how this module can be used to listen for and
+process incoming data.
+
+The only significant difference due to this being a test is the need to
+disconnect the receiver function from the global import_started signal. This is
+to avoid interference with tests. The import_started_receiver context manager
+is used to do this, but a normal app can just connect to the signal once.
+'''
 import pytest
 
 from patronsdatasrc import (
@@ -8,8 +17,10 @@ from test_perform_import import import_started_receiver
 
 
 def test_integration():
+    # A mock "database" of records
     db = dict()
 
+    # The generator which
     def record_handler(import_operation, records):
         to_update = dict()
         to_remove = set()
@@ -22,6 +33,8 @@ def test_integration():
             else:
                 to_update[fid] = record.data
 
+            # Yield is required to allow the next record to be made available
+            # and allow other handlers to run. An exception is rail
             yield
 
         if import_operation.import_type is ImportType.FULL_SYNC:
@@ -44,7 +57,7 @@ def test_integration():
     # Can use @receiver(import_started) decorator in normal app
     with import_started_receiver(import_listener):
 
-        # Not a type we're interested in
+        # Not a type we're interested in - these get ignored
         perform_import('bar', ImportType.FULL_SYNC, [
             ImportRecord([ID('x', 0)], object())
         ])
@@ -61,8 +74,11 @@ def test_integration():
             'd': 'def'
         }
 
+        # Update/delete just what's specified
         perform_import('foo', ImportType.PARTIAL_UPDATE, [
+            # Delete this
             ImportRecord([ID('f', 'd')], None),
+            # Add these
             ImportRecord([ID('f', 'g')], 'ghi'),
             ImportRecord([ID('f', 'j')], 'jkl'),
         ])
@@ -73,6 +89,7 @@ def test_integration():
             'j': 'jkl'
         }
 
+        # Replace everything
         perform_import('foo', ImportType.FULL_SYNC, [
             ImportRecord([ID('f', 'm')], 'mno'),
             ImportRecord([ID('f', 'p')], 'pqr'),
