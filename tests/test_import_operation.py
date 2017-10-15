@@ -15,7 +15,7 @@ def mock_handler():
     (object(), ImportType.PARTIAL_UPDATE)
 ])
 def test_import_operation_has_record_and_import_types(
-    record_type, import_type):
+        record_type, import_type):
 
     iop = ImportOperation(record_type, import_type)
 

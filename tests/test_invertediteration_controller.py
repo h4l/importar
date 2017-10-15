@@ -98,7 +98,7 @@ def controller_with_non_consuming_consumer(non_consuming_consumer):
 
 
 def test_transmitting_value_to_non_consuming_consumer_results_in_error(
-    controller_with_non_consuming_consumer):
+        controller_with_non_consuming_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_non_consuming_consumer.transmit_value(object())
@@ -107,7 +107,7 @@ def test_transmitting_value_to_non_consuming_consumer_results_in_error(
 
 
 def test_transmitting_failure_to_non_consuming_consumer_results_in_error(
-    controller_with_non_consuming_consumer):
+        controller_with_non_consuming_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_non_consuming_consumer.fail(ValueError('foo'))
@@ -116,7 +116,7 @@ def test_transmitting_failure_to_non_consuming_consumer_results_in_error(
 
 
 def test_transmitting_end_to_non_consuming_consumer_results_in_error(
-    controller_with_non_consuming_consumer):
+        controller_with_non_consuming_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_non_consuming_consumer.end()
@@ -135,7 +135,7 @@ def eager_consumer():
 
 
 def test_creating_controller_with_eager_consumer_results_in_error(
-    eager_consumer):
+        eager_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         InvertedIterationController(eager_consumer)
@@ -154,13 +154,14 @@ def greedy_consumer():
 
     return greedy_consumer
 
+
 @pytest.fixture(scope='function')
 def controller_with_greedy_consumer(greedy_consumer):
     return InvertedIterationController(greedy_consumer)
 
 
 def test_transmitting_value_to_non_yielding_consumer_results_in_error(
-    controller_with_greedy_consumer):
+        controller_with_greedy_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_greedy_consumer.transmit_value(object())
@@ -173,7 +174,7 @@ def test_transmitting_value_to_non_yielding_consumer_results_in_error(
 # the feeder itself, so it doesn't matter that they don't
 # yield as they never get a chance to.
 def test_transmitting_failure_to_non_yielding_consumer_works(
-    controller_with_greedy_consumer):
+        controller_with_greedy_consumer):
 
     with pytest.raises(ValueError) as excinfo:
         controller_with_greedy_consumer.fail(ValueError('foo'))
@@ -182,7 +183,7 @@ def test_transmitting_failure_to_non_yielding_consumer_works(
 
 
 def test_transmitting_end_to_non_yielding_consumer_works(
-    controller_with_greedy_consumer):
+        controller_with_greedy_consumer):
 
     controller_with_greedy_consumer.end()
 
@@ -203,7 +204,7 @@ def controller_with_lazy_consumer(lazy_consumer):
 
 
 def test_transmitting_value_to_lazy_consumer_results_in_error(
-    controller_with_lazy_consumer):
+        controller_with_lazy_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_lazy_consumer.transmit_value(object())
@@ -213,7 +214,7 @@ def test_transmitting_value_to_lazy_consumer_results_in_error(
 
 
 def test_transmitting_end_to_lazy_consumer_results_in_error(
-    controller_with_lazy_consumer):
+        controller_with_lazy_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_lazy_consumer.end()
@@ -225,7 +226,7 @@ def test_transmitting_end_to_lazy_consumer_results_in_error(
 
 
 def test_transmitting_failure_to_lazy_consumer_results_in_error(
-    controller_with_lazy_consumer):
+        controller_with_lazy_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_lazy_consumer.fail(ValueError('foo'))
@@ -262,14 +263,14 @@ def controller_with_failed_consumer(controller_with_failing_consumer):
 
 
 def test_controllers_with_failed_consumers_are_dead(
-    controller_with_failed_consumer):
+        controller_with_failed_consumer):
 
     assert controller_with_failed_consumer.is_dead
     assert not controller_with_failed_consumer.is_active
 
 
 def test_transmitting_value_to_failed_consumer_results_in_error(
-    controller_with_failed_consumer):
+        controller_with_failed_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_failed_consumer.transmit_value(object())
@@ -279,7 +280,7 @@ def test_transmitting_value_to_failed_consumer_results_in_error(
 
 
 def test_transmitting_end_to_failed_consumer_results_in_error(
-    controller_with_failed_consumer):
+        controller_with_failed_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_failed_consumer.end()
@@ -289,7 +290,7 @@ def test_transmitting_end_to_failed_consumer_results_in_error(
 
 
 def test_transmitting_failure_to_failed_consumer_results_in_error(
-    controller_with_failed_consumer):
+        controller_with_failed_consumer):
 
     with pytest.raises(InvertedIterationError) as excinfo:
         controller_with_failed_consumer.fail(ValueError('foo'))

@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, call
 from contextlib import contextmanager
 
 import pytest
-from django.dispatch import Signal
 
 from importar import (
-    import_started, perform_import, ImportType, ImportOperation,
-    ImportOperationHandler, ImportRecord, ID, ImportOperationError)
+    import_started, perform_import, ImportType, ImportOperationHandler,
+    ImportRecord, ID, ImportOperationError
+)
 
 
 @contextmanager
@@ -22,6 +22,7 @@ def import_started_receiver(receiver):
 @contextmanager
 def handlers_attached(*handlers):
     iop = None
+
     def receiver(*args, sender=None, **kwargs):
         nonlocal iop
         assert iop is None
@@ -104,7 +105,7 @@ def test_records_must_be_importrecord_instances():
      for x in [object(), object(), object()])
 ])
 def test_records_are_provided_to_handlers_registered_with_importop(
-    mock_iop_handler, records):
+        mock_iop_handler, records):
 
     # tee in case it's a one shot generator
     in_records, expected_records = itertools.tee(records)
@@ -119,18 +120,17 @@ def test_handlers_get_call_to_finished_func_after_records(mock_iop_handler):
     def assert_finished_not_called(iop, record):
         mock_iop_handler.on_import_finished.assert_not_called()
 
+    mock_iop_handler.on_record_available.side_effect = \
+        assert_finished_not_called
 
-    mock_iop_handler.on_record_available.side_effect = assert_finished_not_called
-
-    iop = perform_import('foo', ImportType.FULL_SYNC,
-                         [ImportRecord([ID(1, 1)], 1)])
+    perform_import('foo', ImportType.FULL_SYNC, [ImportRecord([ID(1, 1)], 1)])
 
     assert mock_iop_handler.on_record_available.call_count == 1
     assert mock_iop_handler.on_import_finished.call_count == 1
 
 
 def test_import_failed_not_called_on_successful_imports(mock_iop_handler):
-    iop = perform_import('foo', ImportType.FULL_SYNC, [])
+    perform_import('foo', ImportType.FULL_SYNC, [])
 
     assert mock_iop_handler.on_import_finished.call_count == 1
     assert mock_iop_handler.on_import_failed.call_count == 0
@@ -175,7 +175,7 @@ def test_import_failed_called_when_handler_raises(mock_iop_handler):
 
 
 def test_import_failed_called_when_import_started_receiver_raises(
-    mock_iop_handler):
+        mock_iop_handler):
     '''
     Registered handlers get an import failed event when an import_started
     receiver fails.
@@ -189,7 +189,8 @@ def test_import_failed_called_when_import_started_receiver_raises(
         with pytest.raises(ImportOperationError) as excinfo:
             perform_import('foo', ImportType.FULL_SYNC, [])
 
-        assert ('import_started signal receiver raised exception' in str(excinfo.value))
+        assert ('import_started signal receiver raised exception'
+                in str(excinfo.value))
 
     assert mock_iop_handler.on_import_failed.call_count == 1
 
@@ -219,8 +220,8 @@ def test_all_failed_handlers_called_despite_one_failing():
     with handlers_attached(handler_a, handler_b):
         with pytest.raises(ImportOperationError) as excinfo:
             perform_import('foo', ImportType.FULL_SYNC,
-                # Fails due to division by zero
-                (1/0 for _ in [1]))
+                           # Fails due to division by zero
+                           (1/0 for _ in [1]))
 
         assert str(excinfo.value) == 'record generator raised exception'
 

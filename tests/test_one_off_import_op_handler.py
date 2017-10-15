@@ -29,7 +29,7 @@ def record():
 def test_iop_a_and_b_have_same_fields(iop_a, iop_b):
     assert iop_a.record_type is iop_b.record_type
     assert iop_a.import_type is iop_b.import_type
-    assert not iop_a is iop_b
+    assert iop_a is not iop_b
     assert iop_a != iop_b
 
 

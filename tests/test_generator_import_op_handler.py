@@ -62,7 +62,7 @@ def test_new_consumer_started_when_import_finished(gen_handler, iop, handler):
 
 
 def test_import_failed_reported_as_importoperationerror(
-    gen_handler, iop, handler):
+        gen_handler, iop, handler):
 
     gen_handler.on_import_failed(iop)
 
@@ -83,8 +83,8 @@ def test_available_records_are_consumed(gen_handler, iop, handler):
     assert handler.end.call_count == 1
 
 
-def test_handler_which_failed_on_record_available_doesnt_fail_controller_when_controller_is_dead(
-    gen_handler, iop, handler):
+def test_handler_which_failed_on_record_available_doesnt_fail_controller_when_controller_is_dead(  # noqa: E501
+        gen_handler, iop, handler):
     # If the handler's controller fails when handling a record, the failure
     # will result in each handler getting a failed event. Because the
     # controller is dead (its consumer generator has failed) it's not possible
@@ -107,8 +107,8 @@ def test_handler_which_failed_on_record_available_doesnt_fail_controller_when_co
     handler.exception.assert_not_called()
 
 
-def test_handler_which_failed_on_import_finished_doesnt_fail_controller_when_controller_is_dead(
-    gen_handler, iop, handler):
+def test_handler_which_failed_on_import_finished_doesnt_fail_controller_when_controller_is_dead(  # noqa: E501
+        gen_handler, iop, handler):
     # Note that currently failed is never triggered after finished is, so this
     # interaction (calling import_failed after import_finished) never happens.
     # e.g. if handlers fail while handling finished, other handlers are not

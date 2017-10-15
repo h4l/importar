@@ -7,11 +7,9 @@ disconnect the receiver function from the global import_started signal. This is
 to avoid interference with tests. The import_started_receiver context manager
 is used to do this, but a normal app can just connect to the signal once.
 '''
-import pytest
-
 from importar import (
-    GeneratorImportOperationHandler, ImportOperation, ImportType,
-    ImportOperationError, perform_import, ImportRecord, ID
+    GeneratorImportOperationHandler, ImportType, perform_import, ImportRecord,
+    ID
 )
 from test_perform_import import import_started_receiver
 
