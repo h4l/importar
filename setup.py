@@ -18,10 +18,19 @@ def get_version(filename):
 
 setup(
     name='importar',
+    license='BSD',
     version='0.0.1',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     author='Hal Blackburn',
     author_email='hwtb2@cam.ac.uk',
-    install_requires=['django']
+    install_requires=['django'],
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: BSD License',
+        'Programming Language :: Python :: 3 :: Only',
+        'Operating System :: OS Independent'
+    ],
+    python_requires='>=3.4, <4'
 )
