@@ -109,9 +109,10 @@ class InvertedIterationController:
             bind_consumer: The function
         '''
         self.iteration_state = IterationState()
-        self.consumer = bind_consumer(self._feeder())
         self.step_count = 0
         self.yield_count = 0
+        self.consumer = bind_consumer(self._feeder())
+        self.consumer_dead = False
 
     def _feeder(self):
         while True:
@@ -134,40 +135,50 @@ class InvertedIterationController:
 
     def _step(self):
         assert self.yield_count == self.step_count
+        self.step_count += 1
         try:
-            self.step_count += 1
-
             # Have the consumer pull the next value from our _feeder() generator
             next(self.consumer)
-
-            # The consumer must advance our _feeder() when we advance it. If
-            # it doesn't the counts will be out of sync.
-            self._validate_in_sync()
-        except InvertedIterationError:
-            raise
         except StopIteration:
+            self.consumer_dead = True
             if not self.iteration_state.is_at_end:
                 raise InvertedIterationError(
                     'Consumer unexpectedly raised StopIteration. (Perhaps '
                     'you\'re breaking before consuming the whole iterator.)')
             self._validate_in_sync()
         except Exception:
-            self._validate_in_sync()
+            self.consumer_dead = True
             raise
 
+        # The consumer must advance our _feeder() when we advance it. If
+        # it doesn't the counts will be out of sync.
+        self._validate_in_sync()
+
+    def _validate_consumer_alive(self):
+        if self.is_dead:
+            raise InvertedIterationError(
+                'Attempted to communicate with a failed iterator. (Consumer '
+                'previously raised an exception.)')
 
     def transmit_value(self, value):
+        self._validate_consumer_alive()
         self.iteration_state.register_next_val(value)
         self._step()
 
     def fail(self, err):
+        self._validate_consumer_alive()
         self.iteration_state.register_error(err)
         self._step()
 
     def end(self):
+        self._validate_consumer_alive()
         self.iteration_state.register_end()
         self._step()
 
     @property
     def is_active(self):
-        return not self.iteration_state.is_at_end
+        return not (self.iteration_state.is_at_end or self.is_dead)
+
+    @property
+    def is_dead(self):
+        return self.consumer_dead
