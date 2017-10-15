@@ -1,6 +1,6 @@
 import pytest
 
-from patronsdatasrc.invertediteration import (
+from importar.invertediteration import (
     State, IterationState
 )
 

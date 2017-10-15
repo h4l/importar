@@ -1,6 +1,6 @@
 import pytest
 
-from patronsdatasrc import ImportRecord, ID
+from importar import ImportRecord, ID
 
 
 @pytest.fixture(scope='function')

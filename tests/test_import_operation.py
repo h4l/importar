@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from patronsdatasrc import ImportOperation, ImportType, ImportOperationHandler
+from importar import ImportOperation, ImportType, ImportOperationHandler
 
 
 def mock_handler():

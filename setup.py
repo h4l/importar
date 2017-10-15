@@ -17,15 +17,11 @@ def get_version(filename):
 
 
 setup(
-    name='patrons_datasrc',
+    name='importar',
     version='0.0.1',
     packages=find_packages('src'),
     package_dir={'': 'src'},
     author='Hal Blackburn',
     author_email='hwtb2@cam.ac.uk',
-    install_requires=['django'],
-    entry_points={
-        'console_scripts': []
-    },
-    package_data={}
+    install_requires=['django']
 )

@@ -1,4 +1,4 @@
-from patronsdatasrc import ID
+from importar import ID
 
 
 def test_new_id_types_can_be_registered():
