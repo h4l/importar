@@ -231,15 +231,41 @@ class GeneratorImportOperationHandler(OneOffImportOperationHandler):
         self.generator = generator
         self.controller = InvertedIterationController(
             partial(generator, operation))
+        self.error_raised = False
 
     def on_record_available(self, operation, record):
         super().on_record_available(operation, record)
-        self.controller.transmit_value(record)
+
+        # We should never be offered another record after having one fail, as
+        # the import will have been aborted.
+        assert not self.error_raised
+
+        try:
+            self.controller.transmit_value(record)
+        except Exception:
+            self.error_raised = True
+            raise
 
     def on_import_failed(self, operation):
         super().on_import_failed(operation)
+
+        # If we've raised an error then the consuming generator is no longer
+        # able to accept values, it'll give a StopIteration right away, which
+        # breaks the contract of InvertedIterationController. However, when
+        # the consumer's raised an error, its able to detect that itself and
+        # do its own cleanup, so no need to re-notify it anyway.
+        if self.error_raised:
+            return
+
         self.controller.fail(ImportOperationError('handler got on_import_failed()'))
 
     def on_import_finished(self, operation):
         super().on_import_finished(operation)
-        self.controller.end()
+
+        assert not self.error_raised
+
+        try:
+            self.controller.end()
+        except Exception:
+            self.error_raised = True
+            raise

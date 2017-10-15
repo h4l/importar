@@ -22,7 +22,7 @@ def consumer(handler):
             for record in records:
                 handler.handle(record)
                 yield
-            handler.end()
+            handler.end(operation)
         except Exception as e:
             handler.exception(e)
 
@@ -87,3 +87,48 @@ def test_available_records_are_consumed(gen_handler, iop, handler):
         call('def')
     ])
     assert handler.end.call_count == 1
+
+
+def test_handler_which_failed_on_record_available_doesnt_fail_controller_when_controller_is_dead(
+    gen_handler, iop, handler):
+    # If the handler's controller fails when handling a record, the failure
+    # will result in each handler getting a failed event. Because the
+    # controller is dead (its consumer generator has failed) it's not possible
+    # to notify it of the failure. Not that that matters, as the consumer will
+    # (or can) know that it itself failed through its own try: except:
+    # blocks/context managers, etc.
+
+    # Have the consumer die
+    handler.start.side_effect = ValueError('boom')
+
+    with pytest.raises(ValueError) as excinfo:
+        gen_handler.on_record_available(iop, 'abc')
+
+    assert str(excinfo.value) == 'boom'
+    handler.handle.assert_not_called()
+
+    # Does nothing as the controller/consumer are dead
+    gen_handler.on_import_failed(iop)
+
+    handler.exception.assert_not_called()
+
+
+def test_handler_which_failed_on_import_finished_doesnt_fail_controller_when_controller_is_dead(
+    gen_handler, iop, handler):
+    # Note that currently failed is never triggered after finished is, so this
+    # interaction (calling import_failed after import_finished) never happens.
+    # e.g. if handlers fail while handling finished, other handlers are not
+    # notified.
+
+    # Have the consumer die
+    handler.start.side_effect = ValueError('boom')
+
+    with pytest.raises(ValueError) as excinfo:
+        gen_handler.on_import_finished(iop)
+
+    assert str(excinfo.value) == 'boom'
+    handler.end.assert_not_called()
+
+    # Does nothing as the controller/consumer are dead.
+    # Would raise if controller.fail() was called as a result of this call.
+    gen_handler.on_import_failed(iop)

@@ -12,9 +12,11 @@ from patronsdatasrc import (
 
 @contextmanager
 def import_started_receiver(receiver):
-    import_started.connect(receiver)
-    yield receiver
-    import_started.disconnect(receiver)
+    try:
+        import_started.connect(receiver)
+        yield receiver
+    finally:
+        import_started.disconnect(receiver)
 
 
 @contextmanager
@@ -29,12 +31,13 @@ def handlers_attached(*handlers):
             iop.attach_handler(handler)
 
     with import_started_receiver(receiver):
-        yield handlers
+        try:
+            yield handlers
+        finally:
+            assert iop is not None, 'import_started signal not received'
 
-        assert iop is not None, 'import_started signal not received'
-
-        for handler in handlers:
-            iop.detach_handler(handlers)
+            for handler in handlers:
+                iop.detach_handler(handlers)
 
 
 @pytest.fixture(scope='function')
