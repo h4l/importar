@@ -2,9 +2,11 @@ import abc
 import collections
 from enum import Enum
 import logging
-from functools import wraps
+from functools import partial
 
 from django.dispatch import Signal
+
+from .invertediteration import InvertedIterationController
 
 
 logger = logging.getLogger(__name__)
@@ -223,127 +225,21 @@ class OneOffImportOperationHandler(ImportOperationHandler):
 
 
 class GeneratorImportOperationHandler(OneOffImportOperationHandler):
-    #
-    # Terminology:
-    # handling generator: The generator provided by external code which does
-    #           something with each record we discover.
-    # driving generator: The generator which is iterated over by the handling
-    #           generator to receive pending records
-    #           pending record: An object which yields a record when awaited
-    #           using `yield from`
-    #
-
-    def __init__(self, operation, handling_generator_creator):
+    def __init__(self, operation, generator):
         super().__init__(operation)
 
-        self._driving_generator = self._driver()
-
-        self._handling_generator = handling_generator_creator(
-            operation, _driving_generator)
-
-        self._pending_record = None
-
-        def future_record():
-            while self._next_record is not None:
-
-
-                yield self._next_record
-
-        self._next_record_provider
-
-    @staticmethod
-    def future(token, value):
-        yield token
-        return value
-
-    def _driver(self):
-        last_token = None
-        while self._pending_record != None:
-            token, value = self._pending_record
-            if last_token is token:
-                raise AssertionError(
-                    'import operation handler generator attempted to obtain a '
-                    'new record without yielding')
-
-            yield self.future(token, value)
-
-
-    def _ensure_generator_primed(self):
-        if not self._generator_primed:
-            next(self.generator)
-            self._generator_primed = True
+        self.generator = generator
+        self.controller = InvertedIterationController(
+            partial(generator, operation))
 
     def on_record_available(self, operation, record):
         super().on_record_available(operation, record)
-
-        # If we've not yet seen a record we need to wait until we know the next
-        # event before passing the record to the handling generator. This is
-        # because we need to know if the generator feeding the handling
-        if self._pending_record is None:
-            self._pending_record = (object(), record)
-
-
-        #self._ensure_generator_primed()
-        #self._generator.send(record)
+        self.controller.transmit_value(record)
 
     def on_import_failed(self, operation):
         super().on_import_failed(operation)
-
-        self._ensure_generator_primed()
-        self._generator.throw(ImportOperationError, 'got on_import_failed()')
-
+        self.controller.fail(ImportOperationError('handler got on_import_failed()'))
 
     def on_import_finished(self, operation):
         super().on_import_finished(operation)
-
-        self._ensure_generator_primed()
-
-
-
-
-
-def import_operation_handler(f):
-    '''
-    Implement an ImportOperationHandler using a generator function (which acts
-    as a coroutine).
-
-    f is a generator function which receives import records by yielding.
-
-    @import_operation_handler
-    def handler(import_operation, future_records):
-        # set up
-        tx = start_db_transaction()
-
-        for future_record in future_records:
-            record = yield from future_record
-
-            save_record_to_db(record, db)
-
-        # clean up
-        tx.commit()
-    '''
-    @wraps(f)
-    def wrapper(operation):
-        pass # FIXME
-    return wrapper
-
-
-def import_operation_handler2(f):
-    '''
-
-    @import_operation_handler2
-    def handler(operation, records)
-        # set up
-        tx = start_db_transaction()
-
-        try:
-            for r in records:
-                save_record_to_db(record, tx)
-        except:
-            tx.roll_back()
-
-        # clean up
-        tx.commit()
-    '''
-    # @wraps(f)
-    # def import_op_handler
+        self.controller.end()
