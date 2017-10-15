@@ -54,16 +54,16 @@ class IterationState:
 
     def register_next_val(self, val):
         if self.state != State.AWAITING_VAL:
-            raise RuntimeError('register_next_value() called in unexpected state: {}'
-                               .format(self.state))
+            raise RuntimeError('register_next_value() called in unexpected '
+                               'state: {}'.format(self.state))
 
         self.val = val
         self.state = State.HAS_VAL
 
     def register_error(self, err):
         if self.state != State.AWAITING_VAL:
-            raise RuntimeError('register_error() called in unexpected state: {}'
-                               .format(self.state))
+            raise RuntimeError('register_error() called in unexpected '
+                               'state: {}'.format(self.state))
         self.val = err
         self.state = State.AT_ERR
 
@@ -137,7 +137,8 @@ class InvertedIterationController:
         assert self.yield_count == self.step_count
         self.step_count += 1
         try:
-            # Have the consumer pull the next value from our _feeder() generator
+            # Have the consumer pull the next value from our _feeder()
+            # generator.
             next(self.consumer)
         except StopIteration:
             self.consumer_dead = True

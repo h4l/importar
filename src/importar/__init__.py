@@ -49,12 +49,6 @@ def _first_error(responses):
                  if isinstance(resp, Exception)), None)
 
 
-# TODO: can we use x = yield coroutines instead of all these signals?
-#   seems yes, but we should provide a generator which makes a generator
-#   implement some sane interface. e.g. you have to send(None) before sending a
-#   real value to an actual generator, which is an odd detail which shouldn't
-#   be exposed.
-
 def perform_import(record_type, import_type, records):
     if not isinstance(import_type, ImportType):
         raise ValueError(
@@ -107,8 +101,8 @@ def perform_import(record_type, import_type, records):
 
 class ImportOperation(object):
     """
-    Identifies a unique, ongoing import operation, which results in zero or more
-    user records being generated.
+    Identifies a unique, ongoing import operation, which results in zero or
+    more user records being generated.
     """
     def __init__(self, record_type, import_type):
         self._record_type = record_type
@@ -130,7 +124,7 @@ class ImportOperation(object):
 
     def attach_handler(self, handler):
         _validate_import_handler(handler)
-        if not handler in self._handlers:
+        if handler not in self._handlers:
             self._handlers.append(handler)
 
     def detach_handler(self, handler):
@@ -257,7 +251,8 @@ class GeneratorImportOperationHandler(OneOffImportOperationHandler):
         if self.error_raised:
             return
 
-        self.controller.fail(ImportOperationError('handler got on_import_failed()'))
+        self.controller.fail(
+            ImportOperationError('handler got on_import_failed()'))
 
     def on_import_finished(self, operation):
         super().on_import_finished(operation)

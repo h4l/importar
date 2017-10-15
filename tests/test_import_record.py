@@ -52,6 +52,7 @@ def test_data_field_cant_be_modified(ir):
     with pytest.raises(AttributeError):
         ir.data = object()
 
+
 def test_ids_field_cant_be_modified(ir):
     with pytest.raises(AttributeError):
         ir.ids = {ID(1, 2)}
