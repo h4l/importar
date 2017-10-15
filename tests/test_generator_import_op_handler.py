@@ -57,12 +57,6 @@ def test_new_consumer_started_after_first_record(gen_handler, iop, handler):
 
 def test_new_consumer_started_when_import_finished(gen_handler, iop, handler):
     assert handler.start.call_count == 0
-    gen_handler.on_import_finished(iop)
-    assert handler.start.call_count == 1
-
-
-def test_new_consumer_started_when_import_finished(gen_handler, iop, handler):
-    assert handler.start.call_count == 0
     gen_handler.on_import_failed(iop)
     assert handler.start.call_count == 1
 
